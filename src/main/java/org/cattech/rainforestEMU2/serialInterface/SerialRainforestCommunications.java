@@ -1,26 +1,30 @@
-package serialInterface;
+package org.cattech.rainforestEMU2.serialInterface;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
+import org.apache.log4j.Logger;
+import org.cattech.rainforestEMU2.xmlCommunications.RainforestCommunicationsInterface;
 
 import gnu.io.CommPort;
 import gnu.io.CommPortIdentifier;
 import gnu.io.SerialPort;
 import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
-import xmlCommunications.RainforestCommunications;
 
 public class SerialRainforestCommunications implements Runnable {
-
-	private RainforestCommunications callback;
+	
+	static Logger log = Logger.getLogger(SerialRainforestCommunications.class.getName());
+	
+	private RainforestCommunicationsInterface callback;
 	private CommPort commPort;
 	private StringBuilder xmlData = new StringBuilder();
 	private InputStream in;
 	private OutputStream out;
 	private String firstLine;
 
-	public SerialRainforestCommunications(RainforestCommunications callback) {
+	public SerialRainforestCommunications(RainforestCommunicationsInterface callback) {
 		this.callback = callback;
 	}
 
@@ -38,7 +42,7 @@ public class SerialRainforestCommunications implements Runnable {
 
 			CommPortIdentifier portIdentifier = CommPortIdentifier.getPortIdentifier(serialDevice);
 			if (portIdentifier.isCurrentlyOwned()) {
-				System.out.println("Error: Port is currently in use");
+				log.debug("Error: Port is currently in use");
 			} else {
 				commPort = portIdentifier.open(this.getClass().getName(), 2000);
 
@@ -56,7 +60,7 @@ public class SerialRainforestCommunications implements Runnable {
 					serialPort.notifyOnDataAvailable(true);
 
 				} else {
-					System.out.println("Error: Only serial ports are handled by this example.");
+					log.debug("Error: Only serial ports are handled by this example.");
 					callback.onShutdown(null);
 				}
 			}
@@ -71,6 +75,7 @@ public class SerialRainforestCommunications implements Runnable {
 	}
 
 	private void addXMLLine(String addXML) {
+		log.debug("Adding XML : " + addXML);
 		if (xmlData.length() == 0) {
 			firstLine = addXML.replaceAll("<", "</");
 		}

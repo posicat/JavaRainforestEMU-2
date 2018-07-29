@@ -1,6 +1,6 @@
-package xmlCommunications;
+package org.cattech.rainforestEMU2.xmlCommunications;
 
-public interface RainforestCommunications {
+public interface RainforestCommunicationsInterface {
 
 	abstract public void readReplyXML(String string);
 	public abstract void onShutdown(Exception e);

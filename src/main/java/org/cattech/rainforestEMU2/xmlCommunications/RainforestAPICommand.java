@@ -1,8 +1,8 @@
-package xmlCommunications;
+package org.cattech.rainforestEMU2.xmlCommunications;
 
-public enum RainforestAPI {
+public enum RainforestAPICommand {
 
-	
+	// List of available requests, and required parameters.
 	get_network_info("Protocol","MacId"),
 	list_network(),
 	get_network_status("Protocol","MacId"),
@@ -20,7 +20,7 @@ public enum RainforestAPI {
 
 	private String[] params;
 
-	RainforestAPI(String... params) {
+	RainforestAPICommand(String... params) {
 		this.params = params;
 	}
 	
