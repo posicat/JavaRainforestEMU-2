@@ -1,6 +1,0 @@
-serialInterface/SerialRainforestCommunications.class
-commandLine/RainforestEMU2$RainforestEMU2Callback.class
-xmlCommunications/RainforestCommunications.class
-serialInterface/SerialRainforestCommunications$SerialReader.class
-serialInterface/SerialRainforestCommunications$SerialWriter.class
-commandLine/RainforestEMU2.class
