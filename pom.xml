@@ -6,6 +6,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>JavaRainforestEMU-2</name>
 	<description>Rainforest EMU-2 Interface + CLI</description>
+	<packaging>jar</packaging>
 	<repositories>
 		<repository>
 			<id>open_nms</id>
@@ -27,38 +28,41 @@
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>2.3.2</version>
-				<configuration>
-					<archive>
-						<manifest>
-							<addClasspath>false</addClasspath>
-							<mainClass>org.cattech.rainforestEMU2.commandLine.RainforestEMU2</mainClass>
-							<classpathPrefix>../lib/*</classpathPrefix>
-						</manifest>
-						<manifestEntries>
-							<Class-Path>../lib/*</Class-Path>
-						</manifestEntries>
-					</archive>
-				</configuration>
+				<artifactId>maven-dependency-plugin</artifactId>
 				<executions>
 					<execution>
+						<id>copy</id>
+						<phase>install</phase>
 						<goals>
-							<goal>test-jar</goal>
+							<goal>copy-dependencies</goal>
 						</goals>
+						<configuration>
+							<outputDirectory>
+								${project.build.directory}/lib
+							</outputDirectory>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.4.2</version>
+				<artifactId>maven-jar-plugin</artifactId>
 				<configuration>
-					<environmentVariables>
-						<HOMEAUTOMATION_HOME>${project.build.directory}/test-classes/</HOMEAUTOMATION_HOME>
-					</environmentVariables>
+					<archive>
+						<manifest>
+							<addClasspath>true</addClasspath>
+							<classpathPrefix>lib/</classpathPrefix>
+							<mainClass>
+								org.cattech.rainforestEMU2.commandLine.RainforestEMU2
+							</mainClass>
+						</manifest>
+					</archive>
 				</configuration>
 			</plugin>
+
+
+
+
 		</plugins>
 	</build>
 	<dependencies>
@@ -77,6 +81,7 @@
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
 			<version>1.2.12</version>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.json</groupId>
