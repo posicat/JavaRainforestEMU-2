@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import org.apache.log4j.Logger;
+import org.cattech.rainforestEMU2.xmlCommunications.RainforestAPICommand;
 import org.cattech.rainforestEMU2.xmlCommunications.RainforestCommunicationsInterface;
 
 import gnu.io.CommPort;
@@ -14,17 +15,19 @@ import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
 
 public class SerialRainforestCommunications implements Runnable {
-	
+
 	static Logger log = Logger.getLogger(SerialRainforestCommunications.class.getName());
-	
+
 	private RainforestCommunicationsInterface callback;
 	private CommPort commPort;
 	private StringBuilder xmlData = new StringBuilder();
 	private InputStream in;
 	private OutputStream out;
 	private String firstLine;
+	private String serialDevice;
 
-	public SerialRainforestCommunications(RainforestCommunicationsInterface callback) {
+	public SerialRainforestCommunications(String serialDevice, RainforestCommunicationsInterface callback) {
+		this.serialDevice = serialDevice;
 		this.callback = callback;
 	}
 
@@ -34,13 +37,13 @@ public class SerialRainforestCommunications implements Runnable {
 		 * port listener.
 		 * http://rxtx.qbang.org/wiki/index.php/Event_based_two_way_Communication
 		 */
-		String serialDevice = "/dev/ttyACM0";
-
-		System.setProperty("gnu.io.rxtx.SerialPorts", serialDevice);
 
 		try {
 
+			System.setProperty("gnu.io.rxtx.SerialPorts", serialDevice); // Enable the port passed in.
+
 			CommPortIdentifier portIdentifier = CommPortIdentifier.getPortIdentifier(serialDevice);
+
 			if (portIdentifier.isCurrentlyOwned()) {
 				log.debug("Error: Port is currently in use");
 			} else {
@@ -48,8 +51,7 @@ public class SerialRainforestCommunications implements Runnable {
 
 				if (commPort instanceof SerialPort) {
 					SerialPort serialPort = (SerialPort) commPort;
-					serialPort.setSerialPortParams(115200, SerialPort.DATABITS_8, SerialPort.STOPBITS_1,
-							SerialPort.PARITY_NONE);
+					serialPort.setSerialPortParams(115200, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 
 					in = serialPort.getInputStream();
 					out = serialPort.getOutputStream();
@@ -65,6 +67,7 @@ public class SerialRainforestCommunications implements Runnable {
 				}
 			}
 		} catch (Exception e) {
+			log.error("Error opening port " + serialDevice);
 			callback.onShutdown(e);
 		}
 	}
@@ -92,6 +95,60 @@ public class SerialRainforestCommunications implements Runnable {
 
 	public void sendCommandXML(String xmlCommand) throws IOException {
 		out.write(xmlCommand.getBytes());
+	}
+
+	public void clearSchedule() throws IOException {
+
+		for (String event : RainforestAPICommand.getSchedualable()) {
+			System.out.println("Turning off " + event);
+			setSchedule("0xD8D5B90000006A59", event, 9000, true);
+		}
+
+		getSchedule(null, null);
+	}
+
+	private void getSchedule(String deviceMacId, String event) throws IOException {
+		StringBuilder message = new StringBuilder();
+
+		message.append("<Command>");
+		message.append("<Name>get_schedule</Name>");
+		if (null != event) {
+			message.append("<Event>").append(event).append("</Event>");
+		}
+		if (null != deviceMacId) {
+			message.append("<MeterMacId>").append(deviceMacId).append("</MeterMacId>");
+
+		}
+		message.append("</Command>\r\n");
+
+		log.info("Sending ...\n" + message.toString());
+		sendCommandXML(message.toString());
+	}
+
+	private void setSchedule(String deviceMacId, String event, Integer frequencySeconds, Boolean enabled) throws IOException {
+		StringBuilder message = new StringBuilder();
+
+		message.append("<Command>");
+		message.append("<Name>set_schedule</Name>");
+		if (null != deviceMacId) {
+			message.append("<MacId>").append(deviceMacId).append("</MacId>");
+
+		}
+		if (null != event) {
+			message.append("<Event>").append(event).append("</Event>");
+		}
+		if (null != frequencySeconds) {
+			message.append("<Frequency>0x").append(Integer.toHexString(frequencySeconds)).append("</Frequency>");
+
+		}
+		if (null != enabled) {
+			message.append("<Enabled>").append(enabled.booleanValue() ? "Y" : "N").append("</Enabled>");
+
+		}
+		message.append("</Command>\r\n");
+
+		log.info("Sending ...\n" + message.toString());
+		sendCommandXML(message.toString());
 	}
 
 	// ----------------------------------------------------------------------------------------
@@ -128,7 +185,6 @@ public class SerialRainforestCommunications implements Runnable {
 				callback.onShutdown(e);
 			}
 		}
-
 	}
 
 	public class SerialWriter implements Runnable {

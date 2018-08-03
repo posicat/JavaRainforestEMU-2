@@ -66,7 +66,7 @@ public enum RainforestAPIDataElement {
 	TrailingDigits("null"),;
 
 	static Logger log = Logger.getLogger(RainforestAPIDataElement.class.getName());
-
+	
 	private String format;
 	private static final Map<String, RainforestAPIDataElement> nameIndex = new HashMap<String, RainforestAPIDataElement>(RainforestAPIDataElement.values().length);
 	private static final Long jan2000 = calcJan2000();
