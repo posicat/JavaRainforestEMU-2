@@ -14,8 +14,6 @@ import org.json.JSONObject;
 public enum RainforestAPIDataElement {
 
 	Protocol("text"),
-	MacId("text"),
-	DeviceMacId("text"),
 	InstallCode("text"),
 	LinkKeyHigh("text"),
 	LinkKeyLow("text"),
@@ -26,7 +24,6 @@ public enum RainforestAPIDataElement {
 	DateCode("text"),
 	ImageType("text"),
 	Status("text"),
-	CoordMacId("text"),
 	Description("text"),
 	StatusCode("text"),
 	ExtPanId("text"),
@@ -41,10 +38,15 @@ public enum RainforestAPIDataElement {
 	Confirmed("text"),
 	Read("text"),
 	Queue("text"),
-	MeterMacId("text"),
 	Event("text"),
 	Enabled("text"),
 
+	MacId("macAddr"),
+	DeviceMacId("macAddr"),
+	CoordMacId("macAddr"),
+	MeterMacId("macAddr"),
+
+	
 	LinkStrength("strength"), // 0-64 -> 0-100%
 
 	Frequency("hex"),
@@ -99,12 +101,15 @@ public enum RainforestAPIDataElement {
 		this.format = format;
 	}
 
-	public static void formatElement(String name, JSONObject json) {
+	public static void formatElement(String name, JSONObject json,boolean removeMacAddresses) {
 		if (json.has(name)) {
 			String format = RainforestAPIDataElement.lookupByName(name).getFormat();
 
 			switch (format) {
 			case "null":
+				break;
+			case "macAddr":
+				ifExistsErase(json, name);
 				break;
 			case "text":
 				break;
@@ -163,7 +168,7 @@ public enum RainforestAPIDataElement {
 				break;
 			case "hex": {
 				String val = ifExistsErase(json, name);
-				Integer value = Integer.parseInt(val.replaceAll("^0x", ""), 16);
+				Long value = Long.parseLong(val.replaceAll("^0x", ""), 16);
 				json.put(name, value);
 			}
 				break;

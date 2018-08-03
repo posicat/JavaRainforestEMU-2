@@ -20,12 +20,14 @@ import org.xml.sax.SAXException;
 public class RainforestTranslate {
 
 	static Logger log = Logger.getLogger(RainforestTranslate.class.getName());
-	
-	public static JSONObject toHumanReadableJson(String xmlData) throws SAXException, IOException, ParserConfigurationException {
+
+	public static JSONObject toHumanReadableJson(String xmlData,boolean sendMacAddresses) throws ParserConfigurationException, SAXException, IOException {
 
 		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-		DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-		Document doc = dBuilder.parse(new InputSource(new StringReader(xmlData)));
+		DocumentBuilder dBuilder;
+		Document doc;
+		dBuilder = dbFactory.newDocumentBuilder();
+		doc = dBuilder.parse(new InputSource(new StringReader(xmlData)));
 
 		Element rootNode = doc.getDocumentElement();
 
@@ -35,19 +37,19 @@ public class RainforestTranslate {
 
 		if (null != notification) {
 			processNodes(rootJson, rootNode);
-			processToReadable(rootJson);
+			processToReadable(rootJson,! sendMacAddresses);
 		}
 		return rootJson;
 	}
 
-	private static void processToReadable(JSONObject json) {
+	private static void processToReadable(JSONObject json,boolean removeMacAddresses) {
 		String[] names = JSONObject.getNames(json);
 		for (String name : names) {
-			if (RainforestAPINotification.lookupByName(name)!=null) {
-				processToReadable(json.getJSONObject(name));
+			if (RainforestAPINotification.lookupByName(name) != null) {
+				processToReadable(json.getJSONObject(name),removeMacAddresses);
 			}
-			if (RainforestAPIDataElement.lookupByName(name)!=null) {
-				RainforestAPIDataElement.formatElement(name, json);
+			if (RainforestAPIDataElement.lookupByName(name) != null) {
+				RainforestAPIDataElement.formatElement(name, json,removeMacAddresses);
 			}
 		}
 

@@ -35,9 +35,13 @@ public class RainforestEMU2 {
 			serialCommunication.run();
 
 			serialCommunication.clearSchedule();
-			
-			synchronized (serialCommunication) {
-				serialCommunication.wait();
+			serialCommunication.setSchedule(null, "demand", 10, true, "rest");
+			serialCommunication.getSchedule(null, null,"rest");
+
+			while(serialCommunication.isRunning()) {
+				synchronized (serialCommunication) {
+					serialCommunication.wait(100);
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -88,10 +92,12 @@ public class RainforestEMU2 {
 			// Processing the XML data into something a little bit more useful.
 			String json = "";
 			try {
-				json = RainforestTranslate.toHumanReadableJson(xmlData).toString();
+				json = RainforestTranslate.toHumanReadableJson(xmlData,false).toString();
 			} catch (SAXException | IOException | ParserConfigurationException e) {
+				log.error("Couldn't parse XML :\n"+xmlData,e);
 				json = "{'error':'" + e.getMessage() + "'}";
-				e.printStackTrace();
+			}catch (Exception e) {
+				log.error("Something went wrong while parsing the XML",e);
 			}
 			System.out.println(json);
 		}

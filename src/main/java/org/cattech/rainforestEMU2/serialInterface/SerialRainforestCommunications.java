@@ -25,10 +25,12 @@ public class SerialRainforestCommunications implements Runnable {
 	private OutputStream out;
 	private String firstLine;
 	private String serialDevice;
+	public volatile boolean running = false;
 
 	public SerialRainforestCommunications(String serialDevice, RainforestCommunicationsInterface callback) {
 		this.serialDevice = serialDevice;
 		this.callback = callback;
+		this.running = true;
 	}
 
 	public void run() {
@@ -73,41 +75,50 @@ public class SerialRainforestCommunications implements Runnable {
 	}
 
 	public void shutDown() {
+		this.running=false;
 		this.commPort.close();
 		callback.onShutdown(null);
 	}
 
 	private void addXMLLine(String addXML) {
-		log.debug("Adding XML : " + addXML);
+		log.debug("XML : \n" + xmlData.toString() + "\tADD:" + addXML);
 		if (xmlData.length() == 0) {
 			firstLine = addXML.replaceAll("<", "</");
 		}
 		xmlData.append(addXML);
 		if (firstLine.equals(addXML)) {
-			sendXMLData();
+			String send = xmlData.toString();
+			xmlData.setLength(0);
+			sendXMLData(send);
 		}
 	}
 
-	public void sendXMLData() {
-		callback.readReplyXML(xmlData.toString());
-		xmlData = new StringBuilder();
+	private void sendXMLData(String data) {
+		callback.readReplyXML(data);
 	}
 
-	public void sendCommandXML(String xmlCommand) throws IOException {
+	private void sendCommandXML(String xmlCommand) throws IOException {
+		log.debug("TO EMU : " + xmlCommand.toString());
 		out.write(xmlCommand.getBytes());
 	}
 
 	public void clearSchedule() throws IOException {
 
 		for (String event : RainforestAPICommand.getSchedualable()) {
-			System.out.println("Turning off " + event);
-			setSchedule("0xD8D5B90000006A59", event, 9000, true);
+			log.debug("Turning off scheduled for event : " + event);
+			setSchedule(null, event, null, false, "rest");
+			sleepNoThrow(100);  // If we send too fast it seems to get lost
 		}
-
-		getSchedule(null, null);
 	}
 
-	private void getSchedule(String deviceMacId, String event) throws IOException {
+	protected void sleepNoThrow(int ms) {
+		try {
+			Thread.sleep(ms);
+		} catch (InterruptedException e) {
+		}
+	}
+
+	public void getSchedule(String deviceMacId, String event, String mode) throws IOException {
 		StringBuilder message = new StringBuilder();
 
 		message.append("<Command>");
@@ -119,23 +130,27 @@ public class SerialRainforestCommunications implements Runnable {
 			message.append("<MeterMacId>").append(deviceMacId).append("</MeterMacId>");
 
 		}
-		message.append("</Command>\r\n");
+		if (null != mode) {
+			message.append("<Mode>").append(mode).append("</Mode>");
+		}
+		message.append("</Command>");
 
-		log.info("Sending ...\n" + message.toString());
 		sendCommandXML(message.toString());
 	}
 
-	private void setSchedule(String deviceMacId, String event, Integer frequencySeconds, Boolean enabled) throws IOException {
+	public void setSchedule(String deviceMacId, String event, Integer frequencySeconds, Boolean enabled, String mode) throws IOException {
 		StringBuilder message = new StringBuilder();
 
 		message.append("<Command>");
 		message.append("<Name>set_schedule</Name>");
 		if (null != deviceMacId) {
 			message.append("<MacId>").append(deviceMacId).append("</MacId>");
-
 		}
 		if (null != event) {
 			message.append("<Event>").append(event).append("</Event>");
+		}
+		if (null != mode) {
+			message.append("<Mode>").append(mode).append("</Mode>");
 		}
 		if (null != frequencySeconds) {
 			message.append("<Frequency>0x").append(Integer.toHexString(frequencySeconds)).append("</Frequency>");
@@ -145,11 +160,15 @@ public class SerialRainforestCommunications implements Runnable {
 			message.append("<Enabled>").append(enabled.booleanValue() ? "Y" : "N").append("</Enabled>");
 
 		}
-		message.append("</Command>\r\n");
+		message.append("</Command>");
 
-		log.info("Sending ...\n" + message.toString());
 		sendCommandXML(message.toString());
+
 	}
+	public boolean isRunning() {
+		return running;
+	}
+
 
 	// ----------------------------------------------------------------------------------------
 	// Handles serial IO via sub-classes
@@ -161,7 +180,7 @@ public class SerialRainforestCommunications implements Runnable {
 	 */
 	public class SerialReader implements SerialPortEventListener {
 		private InputStream in;
-		private byte[] buffer = new byte[1024];
+		private char[] buffer = new char[1024];
 
 		public SerialReader(InputStream in) {
 			this.in = in;
@@ -169,16 +188,20 @@ public class SerialRainforestCommunications implements Runnable {
 
 		public void serialEvent(SerialPortEvent arg0) {
 			int data;
+			String read = "";
 
 			try {
 				int len = 0;
 				while ((data = in.read()) > -1) {
 					if (data == '\n') {
-						break;
+						read = String.copyValueOf(buffer, 0, len);
+						len = 0;
+						addXMLLine(read);
+					} else {
+						buffer[len++] = (char) data;
 					}
-					buffer[len++] = (byte) data;
 				}
-				addXMLLine(new String(buffer, 0, len));
+
 			} catch (IOException e) {
 				e.printStackTrace();
 				commPort.close();
