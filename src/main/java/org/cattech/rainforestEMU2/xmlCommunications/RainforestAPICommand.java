@@ -17,6 +17,8 @@ public enum RainforestAPICommand {
 	reboot("MacId","Target"),
 	get_demand_peaks();
 
+//	static final String[] schedualable = {"time","message","price","summation","demand","scheduled_prices","profiled_data","billing_period","block_period"};
+	static final String[] schedualable = {"demand","price"};
 
 	private String[] params;
 
@@ -26,6 +28,10 @@ public enum RainforestAPICommand {
 	
 	public  String[] getParamsForcommand() {
 		return this.params;
+	}
+
+	public static String[] getSchedualable() {
+		return schedualable;
 	}
 
 }
